@@ -1,0 +1,185 @@
+Exercício 1 — Pedido e Itens
+
+Este exercício tem como objetivo praticar relacionamento 1:N no Spring Boot com JPA/Hibernate usando PostgreSQL.
+O domínio é simples: Pedido (pai) e ItemPedido (filho).
+
+Objetivo
+
+Implementar um serviço REST que permita:
+
+Criar Pedido com dados básicos.
+
+Adicionar Itens a um Pedido existente.
+
+Listar um Pedido com seus Itens.
+
+(Extra) Listar Itens de um Pedido com paginação e ordenação por data.
+
+Tudo usando relacionamento 1:N (Pedido → ItemPedido) e boas práticas de JPA.
+
+Regras de Negócio
+
+Um Pedido pode ter N Itens.
+
+Cada Item pertence a um único Pedido.
+
+Campos mínimos:
+
+Pedido: id, clienteId, createdAt, (extra: total calculado).
+
+ItemPedido: id, pedidoId (FK), produto, quantidade (>0), precoUnit (>=0), createdAt.
+
+O total do pedido é a soma de quantidade * precoUnit de todos os itens.
+
+Não apagar itens em cascata ao remover o pedido (preservar histórico).
+
+Requisitos Técnicos
+
+Spring Boot + Kotlin/Java
+
+Dependências: Spring Web, Spring Data JPA, PostgreSQL Driver, Validation, Flyway (DevTools opcional).
+
+Banco: PostgreSQL.
+
+Fetch LAZY nas associações.
+
+Índice composto recomendado: item_pedido(pedido_id, created_at DESC).
+
+Modelagem (sem código)
+
+Relacionamento:
+
+Lado dono (FK) no ItemPedido: @ManyToOne + @JoinColumn(name="pedido_id").
+
+Lado inverso no Pedido: @OneToMany(mappedBy="pedido").
+
+DDL (conceitual):
+
+pedido(id PK, cliente_id, total, created_at)
+
+item_pedido(id PK, pedido_id FK->pedido.id, produto, quantidade, preco_unit, created_at)
+
+Índice: (pedido_id, created_at DESC).
+
+Endpoints (contratos esperados)
+
+Criar Pedido
+
+POST /api/pedidos
+
+Body: { "clienteId": "string" }
+
+Resposta: dados do pedido (id, clienteId, createdAt, total).
+
+Adicionar Item ao Pedido
+
+POST /api/pedidos/{id}/itens
+
+Body: { "produto": "string", "quantidade": 1, "precoUnit": 10.50 }
+
+Resposta: resumo do pedido (id, total atualizado) ou o item recém-criado.
+
+Buscar Pedido com Itens
+
+GET /api/pedidos/{id}
+
+Resposta: pedido + lista completa de itens (ou um resumo com total).
+
+(Extra) Listar Itens com paginação
+
+GET /api/pedidos/{id}/itens?page=0&size=10&sort=createdAt,desc
+
+Resposta: página de itens com ordenação por createdAt DESC.
+
+Passo a Passo (checklist)
+1) Base do Projeto
+
+ Criar projeto no Spring Initializr com as dependências listadas.
+
+ Configurar conexão application.yml para Postgres.
+
+ Subir aplicação (200 OK em /actuator/health se estiver usando actuator).
+
+2) Migrações de Banco (Flyway)
+
+ Criar V1__pedido_item.sql com as tabelas, FK e índice composto.
+
+ Rodar a aplicação e confirmar que as tabelas foram criadas.
+
+3) Modelagem JPA
+
+ Criar entidades Pedido e ItemPedido.
+
+ Mapear 1:N: ItemPedido (ManyToOne dono) ↔ Pedido (OneToMany inverso).
+
+ Garantir LAZY nas associações.
+
+ Adicionar validações de domínio (quantidade > 0, preço >= 0).
+
+4) Repositórios
+
+ Repositório para Pedido e ItemPedido.
+
+ Método para listar itens por pedidoId com paginação/ordem por createdAt DESC.
+
+5) Casos de Uso (Aplicação)
+
+ Criar pedido.
+
+ Adicionar item (recalcular/retornar total).
+
+ Consultar pedido com itens.
+
+ (Extra) Listar itens paginados.
+
+6) Controladores REST
+
+ Implementar os 3–4 endpoints previstos.
+
+ Usar DTOs (não retornar entidades puras).
+
+7) Boas Práticas & Performance
+
+ Evitar N+1 ao buscar pedido com itens (usar join fetch, @EntityGraph ou projeções).
+
+ Confirmar uso do índice com EXPLAIN ANALYZE na listagem de itens.
+
+ Tratar validações com @Valid e Bean Validation.
+
+8) Testes
+
+ Teste de integração para criar pedido e adicionar itens (ideal: Testcontainers Postgres).
+
+ Testar paginação e ordenação dos itens.
+
+ Testar validações (quantidade inválida, preço inválido).
+
+Critérios de Aceite
+
+ É possível criar um pedido.
+
+ É possível adicionar itens ao pedido existente.
+
+ É possível buscar o pedido com seus itens (sem N+1).
+
+ Paginar e ordenar itens por createdAt DESC.
+
+ Índice composto presente no banco e utilizado (evidência via EXPLAIN).
+
+ Validações aplicadas (quantidade > 0, preço >= 0).
+
+Dicas & Observações
+
+Lado dono é o ItemPedido (tem a FK). Alterações no relacionamento devem ser persistidas a partir dele.
+
+Prefira cascade = {PERSIST, MERGE} no @OneToMany; evite REMOVE em cascata para não apagar histórico acidentalmente.
+
+Use DTOs para requests/responses; mantenha entidades focadas no domínio.
+
+Logue o SQL em dev para enxergar N+1 e otimizar buscas.
+
+Se quiser evoluir: calcular total no domínio ou via consulta agregada; adicionar @Version em Pedido para concorrência.
+
+Pronto para entregar?
+
+DONE quando: endpoints funcionando, banco migrado via Flyway, relacionamento 1:N correto, paginação/ordem ok, README atualizado com decisões e prints de EXPLAIN (opcional).
