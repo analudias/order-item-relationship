@@ -16,10 +16,12 @@ fun OrderRequest.toEntity(): Order {
             productName = it.productName,
             quantity = it.quantity,
             price = it.price,
-            order = order // associando o pedido ao item
+            order = order
         )
     }.toMutableList()
 
-    return order.copy(orderItens = items)
+    order.orderItens.addAll(items)
+
+    return order
 
 }

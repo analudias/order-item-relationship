@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS tb_order (
     id UUID PRIMARY KEY,
     order_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    customer_name VARCHAR(100) NOT NULL
+    customer_name VARCHAR(100) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL
 );
